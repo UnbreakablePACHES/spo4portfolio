@@ -1,4 +1,4 @@
-# Smart Predict-then-Optimize Plus for Portfolio Optimization
+# Smart Predict-then-Optimize for Portfolio Optimization
 
 ## Project Description  
 This project implements an end-to-end portfolio optimization framework based on the Smart Predict-then-Optimize + (SPO+) methodology. 
