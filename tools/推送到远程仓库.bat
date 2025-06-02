@@ -1,20 +1,20 @@
 @echo off
-echo === è‡ªåŠ¨åŒæ­¥ Git ä»“åº“ ===
+echo === ×Ô¶¯Í¬²½ Git ²Ö¿â ===
 
-REM åˆ‡æ¢åˆ° tools æ‰€åœ¨ç›®å½•çš„ä¸Šä¸€çº§ï¼ˆé¡¹ç›®æ ¹ç›®å½•ï¼‰
+REM ÇĞ»»µ½ tools ËùÔÚÄ¿Â¼µÄÉÏÒ»¼¶£¨ÏîÄ¿¸ùÄ¿Â¼£©
 cd /d "%~dp0.."
 
-REM æ‹‰å–è¿œç¨‹ main åˆ†æ”¯
+REM À­È¡Ô¶³Ì main ·ÖÖ§
 echo.
 echo --- Pulling from remote repository...
 git pull --rebase origin main
 IF ERRORLEVEL 1 (
-    echo Pull å¤±è´¥ï¼Œè¯·æ£€æŸ¥æ˜¯å¦å­˜åœ¨å†²çªã€‚
+    echo Pull Ê§°Ü£¬Çë¼ì²éÊÇ·ñ´æÔÚ³åÍ»¡£
     pause
     exit /b
 )
 
-REM æ·»åŠ ã€æäº¤å¹¶æ¨é€æ›´æ”¹
+REM Ìí¼Ó¡¢Ìá½»²¢ÍÆËÍ¸ü¸Ä
 echo.
 echo --- Adding and committing changes...
 git add .
@@ -24,16 +24,16 @@ echo.
 echo --- Pushing to remote...
 git push origin main
 IF ERRORLEVEL 1 (
-    echo Push å¤±è´¥ï¼Œè¯·æ£€æŸ¥é”™è¯¯ä¿¡æ¯ã€‚
+    echo Push Ê§°Ü£¬Çë¼ì²é´íÎóĞÅÏ¢¡£
     pause
     exit /b
 )
 
-REM æ‰“å¼€ GitHub ä»“åº“é¡µé¢ï¼ˆæˆåŠŸåï¼‰
+REM ´ò¿ª GitHub ²Ö¿âÒ³Ãæ£¨³É¹¦ºó£©
 echo.
-echo --- Push æˆåŠŸï¼Œæ‰“å¼€ GitHub é¡µé¢...
+echo --- Push ³É¹¦£¬´ò¿ª GitHub Ò³Ãæ...
 start https://github.com/UnbreakablePACHES/spo4portfolio
 
 echo.
-echo === æ“ä½œå®Œæˆ ===
+echo === ²Ù×÷Íê³É ===
 pause
