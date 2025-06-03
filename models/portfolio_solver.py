@@ -1,5 +1,5 @@
 import cvxpy as cp
-import numpy as np
+import numpy as np  # noqa: F401
 
 def solve_lp(c_vec):
     """

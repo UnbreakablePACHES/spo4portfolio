@@ -1,5 +1,5 @@
 import torch
-import numpy as np
+import numpy as np  # noqa: F401
 from models.portfolio_solver import solve_lp
 
 class SPOLossCalculator:
