@@ -4,7 +4,7 @@ import numpy as np
 def solve_lp(c_vec):
     """
     输入：
-        c_vec: 1D numpy array，预测或真实的收益向量
+        c_vec: 1D numpy array,预测或真实的收益向量
     返回：
         w_opt: 最优解 w (numpy array), 满足：
                max c^T w, s.t. sum(w) = 1, w >= 0
