@@ -1,19 +1,3 @@
-@echo off
-echo === 自动同步 Git 仓库 ===
-
-REM 切换到 tools 所在目录的上一级（项目根目录）
-cd /d "%~dp0.."
-
-REM 拉取远程 main 分支
-echo.
-echo --- Pulling from remote repository...
-git pull --rebase origin main
-IF ERRORLEVEL 1 (
-    echo Pull 失败，请检查是否存在冲突。
-    pause
-    exit /b
-)
-
 REM 添加、提交并推送更改
 echo.
 echo --- Adding and committing changes...
