@@ -1,6 +1,4 @@
-import torch
 import torch.nn as nn
-
 class LinearPredictorTorch(nn.Module):
     """
     一个简单的线性预测器:y = Wx + b
