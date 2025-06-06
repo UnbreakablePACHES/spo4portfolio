@@ -1,8 +1,7 @@
 # portfolio_model.py
 import gurobipy as gp
 from pyepo.model.grb.grbmodel import optGrbModel  # ← 已确认真实路径
-
-class MyPortfolioModel(optGrbModel):
+class PortfolioModel(optGrbModel):
     def __init__(self, n_assets, budget=1.0):
         # 初始化 Gurobi 模型
         self._model = gp.Model()
@@ -10,3 +9,6 @@ class MyPortfolioModel(optGrbModel):
         self._model.modelSense = gp.GRB.MAXIMIZE
         self._model.addConstr(gp.quicksum(self.x[i] for i in self.x) <= budget)
         super().__init__()
+        
+    def _getModel(self):
+        return self._model, self.x
