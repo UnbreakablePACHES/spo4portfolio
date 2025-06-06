@@ -1,8 +1,11 @@
+import pandas as pd
 import torch
 from torch.utils.data import Dataset
 
 class Dataloader(Dataset):
     def __init__(self, df):
+        if isinstance(df, str):  # 如果传入的是路径
+            df = pd.read_csv(df)
         self.features = torch.tensor(df[[
             "log_return", "SMA_10", "price_bias", "RSI_14", 
             "MACD_diff", "bollinger_width", "volume_bias"
