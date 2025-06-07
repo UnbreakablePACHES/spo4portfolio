@@ -1,13 +1,15 @@
+import torch
 import torch.nn as nn
+
 class LinearPredictorTorch(nn.Module):
-    """
-    一个简单的线性预测器:y = Wx + b
-    输入:
-        input_dim: 特征维度
-    """
-    def __init__(self, input_dim):
-        super(LinearPredictorTorch, self).__init__()
-        self.linear = nn.Linear(input_dim, 1)
+    def __init__(self, input_dim, num_assets):
+        super().__init__()
+        self.linear = nn.Linear(input_dim, num_assets)  # 一次性预测全部 ETF
 
     def forward(self, x):
-        return self.linear(x).squeeze(-1)  # 输出 shape: [batch_size]
+        """
+        x: shape = (batch_size, num_assets, input_dim)
+        输出: shape = (batch_size, num_assets)
+        """
+        x = x.view(x.size(0), -1)  # (batch, 8, 7) → (batch, 56)
+        return self.linear(x)
