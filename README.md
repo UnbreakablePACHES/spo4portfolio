@@ -15,9 +15,11 @@ We aims to improve portfolio allocation by jointly optimizing prediction accurac
 ## Environment 
 - Deep Learning Framework: PyTorch (version >=1.8)
 - Required Python Packages:  
-  - pandas (>=1.1)  
-  - numpy (>=1.18)  
-  - matplotlib (>=3.3)  
+  - gurobipy==12.0.2
+  - pandas==2.3.0
+  - pyepo==1.0.2
+  - scikit_learn==1.3.2
+  - torch==2.7.1
   - yfinance
 
 ## Dataset  
