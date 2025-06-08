@@ -20,7 +20,7 @@ We aims to improve portfolio allocation by jointly optimizing prediction accurac
   - pyepo==1.0.2
   - scikit_learn==1.3.2
   - torch==2.7.1
-  - yfinance
+  - yfinance==0.2.61
 
 ## Dataset  
 Daily data in MSCI ishares ETF from 2023-01-01 to 2024-12-31, sourced from yfinance.
