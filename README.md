@@ -2,7 +2,7 @@
 
 ## Introduction  
 This project implements an end-to-end portfolio optimization framework based on the Smart Predict-then-Optimize(SPO) methodology.  
-(For more details: [Smart Predict-then-Optimize: Learning Policies for Decision-Making under Uncertainty](https://arxiv.org/abs/1710.08005))
+(For more details: [Smart Predict-then-Optimize](https://arxiv.org/abs/1710.08005))
 
 We aims to improve portfolio allocation by jointly optimizing prediction accuracy and investment decisions by integrating deep learning time series forecasting models with SPO+ loss functions.
 
