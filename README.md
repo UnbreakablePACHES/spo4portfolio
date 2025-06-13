@@ -39,8 +39,6 @@ spo4portfolio/
 │   ├── LinearInferencer.py      # SPO+ linear predictor
 │   └── PortfolioModel.py        # Portfolio optimization model
 ├── tools/                       # Utility scripts
-│   ├── 从远程仓库获取.bat       # Fetch from remote repo (batch script)
-│   └── 推送到远程仓库.bat       # Push to remote repo (batch script)
 ├── 8tickers_test.ipynb          # Test notebook for 8 stock tickers
 ├── DataAccess.ipynb             # Notebook for accessing and handling data
 ├── README.md                    # Project documentation
