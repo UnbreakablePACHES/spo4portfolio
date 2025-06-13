@@ -24,3 +24,26 @@ We aims to improve portfolio allocation by jointly optimizing prediction accurac
 
 ## Dataset  
 Daily data in MSCI ishares ETF from 2023-01-01 to 2024-12-31, sourced from yfinance.
+
+## File Structure
+```
+spo4portfolio/
+├── DataPipeline/                # Data processing modules
+├── data/                        # Raw and processed data
+│   ├── FeatureData/             # Feature-engineered data
+│   ├── RawData/                 # Raw market data
+│   └── TradingDay_info.csv      # Trading calendar info
+├── loss/                        # Custom loss functions
+├── models/                      # Model definition files
+│   ├── LR.py                    # Linear regression model
+│   ├── LinearInferencer.py      # SPO+ linear predictor
+│   └── PortfolioModel.py        # Portfolio optimization model
+├── tools/                       # Utility scripts
+│   ├── 从远程仓库获取.bat       # Fetch from remote repo (batch script)
+│   └── 推送到远程仓库.bat       # Push to remote repo (batch script)
+├── 8tickers_test.ipynb          # Test notebook for 8 stock tickers
+├── DataAccess.ipynb             # Notebook for accessing and handling data
+├── README.md                    # Project documentation
+├── SPO4Portfolio.code-workspace # VSCode workspace settings
+└── requirements.txt             # Python dependencies
+```
