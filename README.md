@@ -32,19 +32,19 @@ Daily data in MSCI ishares ETF from 2023-01-01 to 2024-12-31, sourced from yfina
 ## File Structure
 ```
 spo4portfolio/
-├── DataPipeline/                # Data processing modules
-├── data/                        # Raw and processed data
-│   ├── FeatureData/             # Feature-engineered data
-│   ├── RawData/                 # Raw market data
+├── DataPipeline/                
+├── data/                        
+│   ├── FeatureData/             # Featured data
+│   ├── RawData/                 # Raw data from yfinance
 │   └── TradingDay_info.csv      # Trading calendar info
 ├── loss/                        # Custom loss functions
-├── models/                      # Model definition files
+├── models/                     
 │   ├── LR.py                    # Linear regression model
 │   ├── LinearInferencer.py      # SPO+ linear predictor
 │   └── PortfolioModel.py        # Portfolio optimization model
 ├── tools/                       # Utility scripts
 ├── 8tickers_test.ipynb          # Test notebook for 8 stock tickers
-├── DataAccess.ipynb             # Notebook for accessing and handling data
+├── DataAccess.ipynb             # Notebook for accessing data
 ├── README.md                    # Project documentation
 ├── SPO4Portfolio.code-workspace # VSCode workspace settings
 └── requirements.txt             # Python dependencies
