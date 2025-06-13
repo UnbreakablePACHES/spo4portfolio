@@ -12,7 +12,7 @@ We aims to improve portfolio allocation by jointly optimizing prediction accurac
 - Backtesting module to evaluate portfolio performance  
 - Visualization of training losses and backtesting results
 
-## Environment 
+## Usage
 - Deep Learning Framework: PyTorch (version >=1.8)
 - Required Python Packages:  
   - gurobipy==12.0.2
@@ -21,7 +21,11 @@ We aims to improve portfolio allocation by jointly optimizing prediction accurac
   - scikit_learn==1.3.2
   - torch==2.7.1
   - yfinance==0.2.61
+- Open the project in VSCode using:
 
+```bash
+SPO4Portfolio.code-workspace
+```
 ## Dataset  
 Daily data in MSCI ishares ETF from 2023-01-01 to 2024-12-31, sourced from yfinance.
 
