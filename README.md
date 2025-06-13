@@ -37,15 +37,15 @@ spo4portfolio/
 │   ├── FeatureData/             # Featured data
 │   ├── RawData/                 # Raw data from yfinance
 │   └── TradingDay_info.csv      # Trading calendar info
-├── loss/                        # Custom loss functions
+├── loss/                        
 ├── models/                     
 │   ├── LR.py                    # Linear regression model
 │   ├── LinearInferencer.py      # SPO+ linear predictor
 │   └── PortfolioModel.py        # Portfolio optimization model
-├── tools/                       # Utility scripts
+├── tools/                       
 ├── 8tickers_test.ipynb          # Test notebook for 8 stock tickers
 ├── DataAccess.ipynb             # Notebook for accessing data
-├── README.md                    # Project documentation
+├── README.md                    
 ├── SPO4Portfolio.code-workspace # VSCode workspace settings
-└── requirements.txt             # Python dependencies
+└── requirements.txt             
 ```
