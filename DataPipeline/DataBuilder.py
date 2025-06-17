@@ -1,5 +1,9 @@
 import pandas as pd
 
+
+"""
+tickers : Names of assets, list
+"""
 def build_dataset(tickers, data_dir="data/FeatureData", dropna=True):
     feature_dfs = []
     label_dfs = []

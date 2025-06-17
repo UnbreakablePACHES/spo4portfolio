@@ -4,7 +4,7 @@ from torch.utils.data import Dataset
 class PortfolioDataset(Dataset):
     def __init__(self, features_df, labels_df, num_assets):
         """
-        parameter:
+        input:
         - features_df: shape = (num_samples, num_assets * num_features)
         - labels_df: shape = (num_samples, num_assets)
         - num_assets: Number of assets
