@@ -1,4 +1,3 @@
-# %%
 import pandas as pd
 import numpy as np
 import torch
@@ -9,6 +8,7 @@ from DataPipeline.Dataloader import PortfolioDataset
 from torch.utils.data import DataLoader
 from DataPipeline.DataBuilder import build_dataset
 from torch import nn
+from torch.optim import Adam
 pd.options.display.float_format = '{:.6f}'.format
 np.set_printoptions(precision=6, suppress=True)
 
@@ -59,7 +59,6 @@ class LinearPredictorTorch(nn.Module):
         x = x.view(x.size(0), -1)  # (batch, 8, 7) → (batch, 56)
         return self.linear(x)
 
-from torch.optim import Adam
 
 # 模型超参数
 input_dim = 7         # 每个资产的特征数
@@ -79,6 +78,12 @@ features_df, labels_df = build_dataset(
     start_date="2023-01-01",
     end_date="2023-12-31")
 
+oracle_df = pd.read_csv("data/DailyOracle/oracle_weights.csv", index_col=0)
+if len(features_df) != len(oracle_df):
+    raise ValueError("features_df 和 oracle_df 行数不一致，不能对齐！")
+
+labels_df = oracle_df.copy()
+print(labels_df)
 # 创建 dataset
 dataset = PortfolioDataset(features_df, labels_df, num_assets=8)
 
