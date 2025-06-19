@@ -6,12 +6,6 @@ This project implements an end-to-end portfolio optimization framework based on 
 
 We aims to improve portfolio allocation by jointly optimizing prediction accuracy and investment decisions by integrating deep learning time series forecasting models with SPO+ loss functions.
 
-## Key Features  
-- Forecast future asset returns using deep learning models such as LSTM and DLinear  
-- Train models with SPO+ loss to align prediction with optimization goals  
-- Backtesting module to evaluate portfolio performance  
-- Visualization of training losses and backtesting results
-
 ## Usage
 - Deep Learning Framework: PyTorch (version >=1.8)
 - Required Python Packages:  
