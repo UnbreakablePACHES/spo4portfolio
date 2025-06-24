@@ -4,6 +4,7 @@ import torch
 import random
 
 from torchinfo import summary
+from dateutil.relativedelta import relativedelta
 
 from models.LinearInferencer import LinearPredictorTorch
 from DataPipeline.Dataloader import PortfolioDataset
@@ -64,86 +65,111 @@ hidden_dim = 32       # allocator 隐层宽度
 epochs = 30           # 训练轮数
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-# 模型实例化
-predictor = LinearPredictorTorch(input_dim * num_assets, num_assets).to(device)
-allocator = FNNSoftmaxAllocator(num_assets, hidden_dim, num_assets).to(device)
-print(summary(allocator, input_size=(64, num_assets)))
-# 优化器（联合训练 predictor 和 allocator）
-optimizer = Adam(list(predictor.parameters()) + list(allocator.parameters()), lr=1e-3)
-features_df, labels_df = build_dataset(
-    tickers=["SPY", "VTI", "EFA", "EEM", "XLK", "JPXN", "AGG", "DBC"],
-    start_date="2023-01-01",
-    end_date="2023-12-31")
 
-oracle_df = pd.read_csv("data/DailyOracle/oracle_weights_with_fee.csv", index_col=0)
-features_df.index = pd.to_datetime(features_df.index).normalize()
-oracle_df.index = pd.to_datetime(oracle_df.index).normalize()
-oracle_df = oracle_df.loc[features_df.index]
-if len(features_df) != len(oracle_df):
-    raise ValueError("features_df 和 oracle_df 行数不一致，不能对齐！")
+results = []
+monthly_returns = []
 
-labels_df = oracle_df.copy()
-print(labels_df)
-# 创建 dataset
-dataset = PortfolioDataset(features_df, labels_df, num_assets=8)
+# 预读取所有 ETF 的 log_return
+return_df = pd.DataFrame()
+for ticker in tickers:
+    file_path = f"data/FeatureData/{ticker}.csv"  # 不用 os.path
+    df = pd.read_csv(file_path, parse_dates=["Date"])
+    df["Date"] = pd.to_datetime(df["Date"]).dt.normalize()
+    df = df.set_index("Date")["log_return"].rename(ticker)
+    return_df = pd.concat([return_df, df], axis=1)
 
-# 创建 dataloader
-train_loader = DataLoader(dataset, batch_size=63, shuffle=True)
-# 训练循环
-for epoch in range(epochs):
-    total_loss = 0
-    for x, y in train_loader:
-        x = x.to(device)  # shape: (B, N, F)
-        y = y.to(device)  # shape: (B, N)
-        # 前向传播
-        pred_y = predictor(x)  # shape: (B, N)
-        loss = spo_plus_loss(pred_y, y, allocator)
-    
-        # 反向传播与优化
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
+# 设置初始月份
+base_month = pd.to_datetime("2024-01-01")
 
-        total_loss += loss.item() * x.size(0)
+for i in range(12):
+    # 当前月份范围
+    infer_start = base_month + relativedelta(months=i)
+    infer_end = (infer_start + relativedelta(months=1)) - pd.Timedelta(days=1)
+    train_start = infer_start - relativedelta(years=1)
+    train_end = infer_start - pd.Timedelta(days=1)
 
-    avg_loss = total_loss / len(train_loader.dataset)
-    print(f"Epoch {epoch+1:02d} - Loss: {avg_loss:.6f}")
+    print(f"\n📅 第 {i+1} 次迭代：训练 {train_start.date()} ~ {train_end.date()}，推断 {infer_start.date()} ~ {infer_end.date()}")
 
-# 设定目标推断月份
-infer_start = "2024-01-01"
-infer_end = "2024-01-31"
+    # 1. 训练数据
+    features_df, labels_df = build_dataset(
+        tickers=tickers,
+        start_date=str(train_start.date()),
+        end_date=str(train_end.date())
+    )
+    oracle_df = pd.read_csv("data/DailyOracle/oracle_weights_with_fee.csv", index_col=0)
+    oracle_df.index = pd.to_datetime(oracle_df.index).normalize()
+    features_df.index = pd.to_datetime(features_df.index).normalize()
+    oracle_df = oracle_df.loc[features_df.index]
+    labels_df = oracle_df.copy()
 
-# 🔁 单独构建目标月份的特征数据（确保不带训练数据）
-features_future, labels_future = build_dataset(
-    tickers=tickers,
-    start_date=infer_start,
-    end_date=infer_end
-)
+    dataset = PortfolioDataset(features_df, labels_df, num_assets=8)
+    train_loader = DataLoader(dataset, batch_size=63, shuffle=True)
 
-# 保证索引是标准日期格式
-features_future.index = pd.to_datetime(features_future.index).normalize()
-labels_future.index = pd.to_datetime(labels_future.index).normalize()
+    # 2. 初始化模型
+    predictor = LinearPredictorTorch(input_dim * num_assets, num_assets).to(device)
+    allocator = FNNSoftmaxAllocator(num_assets, hidden_dim, num_assets).to(device)
+    optimizer = Adam(list(predictor.parameters()) + list(allocator.parameters()), lr=1e-3)
 
-# 构造推断用 Dataset（只用 x）
-inference_dataset = PortfolioDataset(features_future, labels_future, num_assets=8)
+    # 3. 训练模型
+    for epoch in range(epochs):
+        total_loss = 0
+        for x, y in train_loader:
+            x = x.to(device)
+            y = y.to(device)
+            pred_y = predictor(x)
+            loss = spo_plus_loss(pred_y, y, allocator)
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+            total_loss += loss.item() * x.size(0)
+        avg_loss = total_loss / len(train_loader.dataset)
+        print(f"Epoch {epoch+1:02d} - Loss: {avg_loss:.6f}")
 
-# 转为张量 (B, 8, 7)
-x_tensor = torch.stack([inference_dataset[i][0] for i in range(len(inference_dataset))]).to(device)
+    # 4. 构建目标月份的特征
+    features_future, labels_future = build_dataset(
+        tickers=tickers,
+        start_date=str(infer_start.date()),
+        end_date=str(infer_end.date())
+    )
+    features_future.index = pd.to_datetime(features_future.index).normalize()
+    labels_future.index = pd.to_datetime(labels_future.index).normalize()
+    inference_dataset = PortfolioDataset(features_future, labels_future, num_assets=8)
+    x_tensor = torch.stack([inference_dataset[i][0] for i in range(len(inference_dataset))]).to(device)
 
-# 🔍 推断阶段
-predictor.eval()
-allocator.eval()
-with torch.no_grad():
-    pred_y = predictor(x_tensor)        # shape: (B, 8)
-    pred_weights = allocator(pred_y)   # shape: (B, 8)
+    # 5. 推断
+    predictor.eval()
+    allocator.eval()
+    with torch.no_grad():
+        pred_y = predictor(x_tensor)
+        pred_weights = allocator(pred_y)
+    w_month = pred_weights.mean(dim=0).cpu().numpy()
 
-# 聚合结果
-w_next_month = pred_weights.mean(dim=0).cpu().numpy()
+    # 6. 计算月度组合收益
+    try:
+        arith_return_month = np.expm1(return_df.loc[infer_start:infer_end, tickers].values)  # 将log return转为算术收益率
+        daily_return = arith_return_month @ w_month                                           # 每日组合算术收益率
+        monthly_return = np.prod(1 + daily_return) - 1   
+    except Exception as e:
+        print(f"⚠️ 无法计算 {infer_start.strftime('%Y-%m')} 的组合收益：{e}")
+        monthly_return = np.nan
 
-# 打印组合
-print(f"✅ 推断得到的 2024-01 组合比率：")
-for ticker, weight in zip(tickers, w_next_month):
-    print(f"{ticker}: {weight:.4f}")
+    # 7. 打印与记录
+    print(f"✅ 组合比率：")
+    for ticker, weight in zip(tickers, w_month):
+        print(f"{ticker}: {weight:.4f}")
+    print(f"📈 {infer_start.strftime('%Y-%m')} 月组合收益：{monthly_return:.4%}")
+
+    results.append((infer_start.strftime('%Y-%m'), w_month))
+    monthly_returns.append((infer_start.strftime('%Y-%m'), monthly_return))
+
+# 保存所有月度收益结果
+monthly_returns_df = pd.DataFrame(results, columns=["Month", "PortfolioWeights"])
+monthly_returns_df["MonthlyReturn"] = [r for _, r in monthly_returns]
+monthly_returns_df["CumulativeReturn"] = (1 + monthly_returns_df["MonthlyReturn"]).cumprod() - 1
+# 保存到 CSV 文件
+monthly_returns_df.to_csv("result\8_ticker_1ytrain1yinfer\MonthlyReturn\LR+softmax.csv", index=False)
+
+print("✅ 已保存所有月度收益到 'monthly_return.csv'")
 
 
 
