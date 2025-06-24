@@ -30,7 +30,6 @@ class PortfolioModel(optGrbModel):
         sol, _ = self.solve()    # 直接用原本 solve()
         return sol
 
-import gurobipy as gp
 
 class PortfolioModelWithFee:
     def __init__(self, n_assets, gamma=0.003, budget=1.0):
