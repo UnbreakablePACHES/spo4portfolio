@@ -154,7 +154,7 @@ for i in range(12):
         monthly_return = np.nan
 
     # 7. 打印与记录
-    print(f"✅ 组合比率：")
+    print(f"组合比率：")
     for ticker, weight in zip(tickers, w_month):
         print(f"{ticker}: {weight:.4f}")
     print(f"📈 {infer_start.strftime('%Y-%m')} 月组合收益：{monthly_return:.4%}")
@@ -169,7 +169,7 @@ monthly_returns_df["CumulativeReturn"] = (1 + monthly_returns_df["MonthlyReturn"
 # 保存到 CSV 文件
 monthly_returns_df.to_csv("result\8_ticker_1ytrain1yinfer\MonthlyReturn\LR+softmax.csv", index=False)
 
-print("✅ 已保存所有月度收益到 'monthly_return.csv'")
+print("已保存所有月度收益到 'monthly_return.csv'")
 
 
 
