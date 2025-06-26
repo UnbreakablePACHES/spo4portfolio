@@ -152,7 +152,7 @@ monthly_returns_df = pd.DataFrame(results, columns=["Month", "PortfolioWeights"]
 monthly_returns_df["MonthlyReturn"] = [r for _, r in monthly_returns]
 monthly_returns_df["CumulativeReturn"] = (1 + monthly_returns_df["MonthlyReturn"]).cumprod() - 1
 # 保存到 CSV 文件
-monthly_returns_df.to_csv("result\8_ticker_1ytrain1yinfer\MonthlyReturn\LR+softmax.csv", index=False)
+monthly_returns_df.to_csv("result\8_ticker_1ytrain1yinfer\LR+softmax.csv", index=False)
 
 print("已保存所有月度收益到 'monthly_return.csv'")
 
