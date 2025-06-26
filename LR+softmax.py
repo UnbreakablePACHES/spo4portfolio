@@ -3,7 +3,6 @@ import numpy as np
 import torch
 import random
 
-from torchinfo import summary
 from dateutil.relativedelta import relativedelta
 
 from models.LinearInferencer import LinearPredictorTorch
@@ -43,20 +42,6 @@ def spo_plus_loss(pred_y, true_y, allocator):
 
     regret = torch.sum((oracle_weights - pred_weights) * true_y, dim=1)
     return regret.mean()
-
-class LinearPredictorTorch(nn.Module):
-    def __init__(self, input_dim, num_assets):
-        super().__init__()
-        self.linear = nn.Linear(input_dim, num_assets)  # 一次性预测全部 ETF
-
-    def forward(self, x):
-        """
-        x: shape = (batch_size, num_assets, input_dim)
-        输出: shape = (batch_size, num_assets)
-        """
-        x = x.view(x.size(0), -1)  # (batch, 8, 7) → (batch, 56)
-        return self.linear(x)
-
 
 # 模型超参数
 input_dim = 7         # 每个资产的特征数
@@ -154,7 +139,7 @@ for i in range(12):
         monthly_return = np.nan
 
     # 7. 打印与记录
-    print(f"组合比率：")
+    print('组合比率:')
     for ticker, weight in zip(tickers, w_month):
         print(f"{ticker}: {weight:.4f}")
     print(f"📈 {infer_start.strftime('%Y-%m')} 月组合收益：{monthly_return:.4%}")
