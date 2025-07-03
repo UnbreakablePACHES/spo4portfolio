@@ -1,103 +1,203 @@
-# # Experimental setup
-
+# ======================================
+# Imports & Setup
+# ======================================
+import torch
 import pandas as pd
 import numpy as np
-import torch
-import random
+import optuna
+from torch.optim import Adam
+from dateutil.relativedelta import relativedelta
 
-from models.LinearInferencer import LinearPredictorTorch
-from models.PortfolioModel import PortfolioModel # 定义投资组合优化模型
-from DataPipeline.Dataloader import PortfolioDataset # 将数据读取为tensor
-from torch.utils.data import DataLoader
 from DataPipeline.DataBuilder import build_dataset
-
+from models.PortfolioModel import PortfolioModel
+from models.LinearInferencer import LinearPredictorTorch
 from pyepo.func.surrogate import SPOPlus
 
-pd.options.display.float_format = '{:.6f}'.format
-np.set_printoptions(precision=6, suppress=True)
+# ======================================
+# Build Monthly Dataset
+# ======================================
+def build_monthly_dataset(tickers, data_dir, oracle_df, start_month, num_months):
+    x_list = []
+    y_list = []
+    for i in range(num_months):
+        infer_start = start_month + relativedelta(months=i)
+        infer_end = infer_start + pd.offsets.MonthEnd(0)
 
-tickers = ["EEM","EFA","JPXN","SPY","XLK",'VTI','AGG','DBC']
+        features_df, _ = build_dataset(
+            tickers=tickers,
+            data_dir=data_dir,
+            start_date=str(infer_start.date()),
+            end_date=str(infer_end.date())
+        )
+        features_df.index = pd.to_datetime(features_df.index).normalize()
 
-seed = 123
+        x = features_df.values  # [T, D]
 
-# 设置 Python 内建随机模块
-random.seed(seed)
+        mask = (oracle_df.index >= infer_start) & (oracle_df.index <= infer_end)
+        y = oracle_df.loc[mask].mean().values  # [A]
 
-# 设置 NumPy 随机种子
-np.random.seed(seed)
+        x_list.append(x)
+        y_list.append(y)
 
-# 设置 PyTorch 的随机种子
-torch.manual_seed(seed)
+    return x_list, y_list
 
-## Train
-features_df, labels_df = build_dataset(tickers) # 读取输入特征和输出特征
-num_assets = len(tickers) # 维度=tickers数组长度
-dataset = PortfolioDataset(features_df, labels_df, num_assets=num_assets) # 构建 PyTorch Dataset
+def build_quarterly_dataset(tickers, data_dir, oracle_df, start_month, num_quarters):
+    x_list = []
+    y_list = []
+    for i in range(num_quarters):
+        q_start = start_month + relativedelta(months=3 * i)
+        q_end = q_start + relativedelta(months=3) - pd.Timedelta(days=1)
 
-batch_size = 32
-train_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
-for x_batch, y_batch in train_loader:
-    print(x_batch.shape, y_batch.shape)
-    break
+        features_df, _ = build_dataset(
+            tickers=tickers,
+            data_dir=data_dir,
+            start_date=str(q_start.date()),
+            end_date=str(q_end.date())
+        )
+        features_df.index = pd.to_datetime(features_df.index).normalize()
 
-predictor = LinearPredictorTorch(input_dim=7 * 8, num_assets=8)
-x_batch, _ = next(iter(train_loader))
-c_hat = predictor(x_batch)  # 输出 shape: [batch_size, 8]
-c_hat.shape
+        x = features_df.values  # 所有天合并为一个样本
 
-predictor.train()
-total_loss = 0.0
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-for x_batch, c_true_batch in train_loader:
-    x_batch = x_batch.to(device)         # [batch_size, 8, 7]
-    c_true_batch = c_true_batch.to(device)  # [batch_size, 8]
+        mask = (oracle_df.index >= q_start) & (oracle_df.index <= q_end)
+        y = oracle_df.loc[mask].mean().values  # 平均 oracle 策略
 
-x_batch, c_true_batch = next(iter(train_loader))
-x_batch = x_batch.to(device)         # shape: [batch_size, 8, 7]
-c_true_batch = c_true_batch.to(device)  # shape: [batch_size, 8]
+        x_list.append(x)
+        y_list.append(y)
 
-optmodel = PortfolioModel(n_assets=8, budget=1.0) # 实例化优化模型
-optimizer = torch.optim.Adam(predictor.parameters(), lr=0.001) # 实例化优化器
-spo_loss_fn = SPOPlus(optmodel, processes=1, solve_ratio=1.0, reduction="mean") # 实例化spoloss
+    return x_list, y_list
+# ======================================
+# Training Function
+# ======================================
+def train_one_epoch(predictor, x_list, y_list, optimizer, spo_loss_fn, optmodel, device):
+    predictor.train()
+    total_loss = 0.0
+    for X_month, c_true_avg in zip(x_list, y_list):
+        x_tensor = torch.tensor(X_month, dtype=torch.float32).to(device)  # [T, D]
+        c_true = torch.tensor(c_true_avg, dtype=torch.float32).to(device)  # [A]
 
-print(type(spo_loss_fn))
-import inspect
-print(inspect.getfile(spo_loss_fn.__class__))
+        optimizer.zero_grad()
+        c_hat_all = predictor(x_tensor)  # [T, A]
+        c_hat = c_hat_all.mean(dim=0, keepdim=True)  # [1, A]
+        c_true = c_true.unsqueeze(0)  # [1, A]
 
-total_loss = 0.0  # 初始化累计损失
+        optmodel.setObj(c_true.detach().cpu().numpy().squeeze())
+        z_star_np, obj_val = optmodel.solve()
+        z_star = torch.tensor(z_star_np, dtype=torch.float32, device=device).unsqueeze(0)
+        true_obj = torch.tensor(obj_val, dtype=torch.float32, device=device).unsqueeze(0)
 
-## Train main script
-for i in range(x_batch.size(0)):  # 遍历这个 batch 中的每个样本
-    x_sample = x_batch[i].unsqueeze(0).to(device)   # [1, 8, 7]
-    c_true = c_true_batch[i].to(device)             # [8]
+        loss = spo_loss_fn(c_hat, c_true, z_star, true_obj)
+        loss.backward()
+        optimizer.step()
+        total_loss += loss.item()
 
-    optimizer.zero_grad()
+    return total_loss / len(x_list)
 
-    # 前向传播：预测 \hat{c}
-    c_hat = predictor(x_sample).squeeze(0)          # [8]
+# ======================================
+# Optuna Objective
+# ======================================
+def objective(trial, tickers, oracle_df, train_start, device):
+    lr = trial.suggest_float("lr", 1e-4, 1e-3, log=True)
+    num_epochs = trial.suggest_int("num_epochs", 24, 36)
 
-    # 设置目标向量并求解 z*(c_true)
-    optmodel.setObj(c_true.detach().cpu().numpy())  # ✅ 设置目标函数
-    z_star_np, obj_val = optmodel.solve()           # ✅ 无参数调用
+    num_assets = len(tickers)
+    features_df, _ = build_dataset(
+        tickers=tickers,
+        data_dir="data/FeatureData",
+        start_date=str(train_start.date()),
+        end_date=str(train_start + relativedelta(months=12) - pd.Timedelta(days=1))
+    )
+    input_dim = features_df.shape[1] // num_assets
 
-    # 转为 PyTorch Tensor
-    z_star = torch.tensor(z_star_np, dtype=torch.float32, device=device)  # [8]
-    true_obj = torch.tensor(obj_val, dtype=torch.float32, device=device)  # []
+    x_list, y_list = build_quarterly_dataset(
+        tickers=tickers,
+        data_dir="data/FeatureData",
+        oracle_df=oracle_df,
+        start_month=train_start,
+        num_quarters=4  # 4 个季度（即 1 年训练期）
+    )
 
-    # 添加 batch 维度，确保 shape = [1, 8] / [1]
-    c_hat = c_hat.unsqueeze(0)
-    c_true = c_true.unsqueeze(0)
-    z_star = z_star.unsqueeze(0)
-    true_obj = true_obj.unsqueeze(0)
+    predictor = LinearPredictorTorch(input_dim * num_assets, num_assets).to(device)
+    optmodel = PortfolioModel(n_assets=num_assets, budget=1.0)
+    spo_loss_fn = SPOPlus(optmodel, processes=1, solve_ratio=1.0, reduction="mean")
+    optimizer = Adam(predictor.parameters(), lr=lr)
 
-    # 计算 SPO+ loss
-    loss = spo_loss_fn(c_hat, c_true, z_star, true_obj)
+    for epoch in range(num_epochs):
+        loss = train_one_epoch(predictor, x_list, y_list, optimizer, spo_loss_fn, optmodel, device)
 
-    # 反向传播 + 参数更新
-    loss.backward()
-    optimizer.step()
+    trial.set_user_attr("model", predictor.state_dict())
+    trial.set_user_attr("params", {"lr": lr, "num_epochs": num_epochs})
+    return loss
 
-    total_loss += loss.item()  # 先验证一个样本是否成功
-print(f"z_star: {z_star}")
-print(f"true_obj: {true_obj.item():.4f}")
-print(f"loss: {loss.item():.4f}")
+# ======================================
+# Main Rolling Loop (example usage)
+# ======================================
+if __name__ == "__main__":
+    tickers = ["EEM", "EFA", "JPXN", "SPY", "XLK", "VTI", "AGG", "DBC"]
+    num_assets = len(tickers)
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+    oracle_df = pd.read_csv("data/DailyOracle/oracle_weights_with_fee.csv", index_col=0)
+    oracle_df.index = pd.to_datetime(oracle_df.index).normalize()
+
+    return_df = pd.read_csv("data/DailyReturn/DailyReturn_8tickers.csv", index_col=0)
+    return_df.index = pd.to_datetime(return_df.index).normalize()
+    return_df.columns = [col.replace("_return", "") for col in return_df.columns]  # match ticker names
+
+    start_month = pd.to_datetime("2024-01-01")
+    results = []
+
+    for i in range(12):
+        infer_start = start_month + relativedelta(months=i)
+        train_start = infer_start - relativedelta(years=1)
+        infer_end = infer_start + pd.offsets.MonthEnd(0)
+
+        print(f"\n📅 {infer_start.strftime('%Y-%m')}: 训练期 {train_start.date()} ~ {(infer_start - pd.Timedelta(days=1)).date()}，推断期 {infer_start.date()} ~ {infer_end.date()}")
+
+        study = optuna.create_study(direction="minimize")
+        study.optimize(lambda trial: objective(trial, tickers, oracle_df, train_start, device), n_trials=10)
+
+        best_state_dict = study.best_trial.user_attrs["model"]
+        features_df, _ = build_dataset(
+            tickers=tickers,
+            data_dir="data/FeatureData",
+            start_date=str(infer_start.date()),
+            end_date=str(infer_end.date())
+        )
+        input_dim = features_df.shape[1] // num_assets
+
+        predictor = LinearPredictorTorch(input_dim * num_assets, num_assets).to(device)
+        predictor.load_state_dict(best_state_dict)
+        predictor.eval()
+
+        x_tensor = torch.tensor(features_df.values, dtype=torch.float32).to(device)
+        with torch.no_grad():
+            c_hat = predictor(x_tensor).mean(dim=0).cpu().numpy()
+
+        optmodel = PortfolioModel(n_assets=num_assets, budget=1.0)
+        optmodel.setObj(c_hat)
+        z_star, _ = optmodel.solve()
+
+        try:
+            arith_return_month = np.expm1(return_df.loc[infer_start:infer_end, tickers].values)
+            daily_return = arith_return_month @ z_star
+            monthly_return = np.prod(1 + daily_return) - 1
+        except Exception as e:
+            print(f"⚠️ 无法计算 {infer_start.strftime('%Y-%m')} 的组合收益：{e}")
+            monthly_return = np.nan
+
+        # 👇 使用复利但累计收益率从 0 开始
+        prev_cum = 0.0 if i == 0 else results[-1]["CumulativeReturn"]
+        cumulative_return = (1 + prev_cum) * (1 + monthly_return) - 1
+
+        results.append({
+            "Month": infer_start.strftime("%Y-%m"),
+            "PortfolioWeights": list(z_star),
+            "MonthlyReturn": monthly_return,
+            "CumulativeReturn": cumulative_return
+        })
+
+        print(f"组合权重: {np.round(z_star, 3)}，月收益: {monthly_return:.4f}，累计收益: {cumulative_return:.4f}")
+
+    df_result = pd.DataFrame(results)
+    df_result.to_csv("result/8_ticker_1ytrain1yinfer/spo_plus_infer_2024_rolling.csv", index=False)
+    print("\n✅ 全部月份处理完成,结果保存为:spo_plus_infer_2024_rolling.csv")
