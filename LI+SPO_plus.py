@@ -199,5 +199,5 @@ if __name__ == "__main__":
         print(f"组合权重: {np.round(z_star, 3)}，月收益: {monthly_return:.4f}，累计收益: {cumulative_return:.4f}")
 
     df_result = pd.DataFrame(results)
-    df_result.to_csv("result/8_ticker_1ytrain1yinfer/spo_plus_infer_2024_rolling.csv", index=False)
+    df_result.to_csv("result/8_ticker_1ytrain1yinfer/LI+SPO_plus.csv", index=False)
     print("\n✅ 全部月份处理完成,结果保存为:spo_plus_infer_2024_rolling.csv")
