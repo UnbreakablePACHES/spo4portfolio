@@ -16,31 +16,6 @@ from pyepo.func.surrogate import SPOPlus
 # ======================================
 # Build Monthly Dataset
 # ======================================
-def build_monthly_dataset(tickers, data_dir, oracle_df, start_month, num_months):
-    x_list = []
-    y_list = []
-    for i in range(num_months):
-        infer_start = start_month + relativedelta(months=i)
-        infer_end = infer_start + pd.offsets.MonthEnd(0)
-
-        features_df, _ = build_dataset(
-            tickers=tickers,
-            data_dir=data_dir,
-            start_date=str(infer_start.date()),
-            end_date=str(infer_end.date())
-        )
-        features_df.index = pd.to_datetime(features_df.index).normalize()
-
-        x = features_df.values  # [T, D]
-
-        mask = (oracle_df.index >= infer_start) & (oracle_df.index <= infer_end)
-        y = oracle_df.loc[mask].mean().values  # [A]
-
-        x_list.append(x)
-        y_list.append(y)
-
-    return x_list, y_list
-
 def build_quarterly_dataset(tickers, data_dir, oracle_df, start_month, num_quarters):
     x_list = []
     y_list = []
@@ -200,4 +175,4 @@ if __name__ == "__main__":
 
     df_result = pd.DataFrame(results)
     df_result.to_csv("result/8_ticker_1ytrain1yinfer/LI+SPO_plus.csv", index=False)
-    print("\n✅ 全部月份处理完成,结果保存为:spo_plus_infer_2024_rolling.csv")
+    print("\n✅ 全部月份处理完成,结果保存为:LI+SPO_plus.csv")
