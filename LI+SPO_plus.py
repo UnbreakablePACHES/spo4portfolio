@@ -118,10 +118,10 @@ if __name__ == "__main__":
     return_df.index = pd.to_datetime(return_df.index).normalize()
     return_df.columns = [col.replace("_return", "") for col in return_df.columns]  # match ticker names
 
-    start_month = pd.to_datetime("2024-01-01")
+    start_month = pd.to_datetime("2016-01-01")
     results = []
 
-    for i in range(12):
+    for i in range(108):
         infer_start = start_month + relativedelta(months=i)
         train_start = infer_start - relativedelta(years=1)
         infer_end = infer_start + pd.offsets.MonthEnd(0)

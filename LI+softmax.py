@@ -64,9 +64,9 @@ for ticker in tickers:
     return_df = pd.concat([return_df, df], axis=1)
 
 # 设置初始月份
-base_month = pd.to_datetime("2024-01-01")
+base_month = pd.to_datetime("2016-01-01")
 
-for i in range(12):
+for i in range(108):
     # 当前月份范围
     infer_start = base_month + relativedelta(months=i)
     infer_end = (infer_start + relativedelta(months=1)) - pd.Timedelta(days=1)
@@ -154,7 +154,7 @@ monthly_returns_df["CumulativeReturn"] = (1 + monthly_returns_df["MonthlyReturn"
 # 保存到 CSV 文件
 monthly_returns_df.to_csv("result\8_ticker_1ytrain1yinfer\LP+softmax.csv", index=False)
 
-print("已保存所有月度收益到 'monthly_return.csv'")
+print("已保存所有月度收益到 'result'")
 
 
 
