@@ -2,10 +2,10 @@
 
 ## Introduction  
 This project implements an end-to-end portfolio optimization framework based on the Smart Predict-then-Optimize(SPO) methodology.  
-(For more details: [Smart Predict-then-Optimize](https://arxiv.org/abs/1710.08005))
+More details about SPO: [Smart Predict-then-Optimize](https://arxiv.org/abs/1710.08005))
 
-We aims to improve portfolio allocation by jointly optimizing prediction accuracy and investment decisions by integrating deep learning time series forecasting models with SPO+ loss functions.
-Related Reserch Paper： [An End-to-End Portfolio Optimization Framework Based on the SPO Paradigm](https://www.researchgate.net/publication/398483968_An_End-to-End_Portfolio_Optimization_Framework_Based_on_the_SPO_Paradigm)
+We aims to improve portfolio allocation by jointly optimizing prediction accuracy and investment decisions by integrating deep learning time series forecasting models with SPO+ loss functions.  
+Related Reserch Paper: [An End-to-End Portfolio Optimization Framework Based on the SPO Paradigm](https://www.researchgate.net/publication/398483968_An_End-to-End_Portfolio_Optimization_Framework_Based_on_the_SPO_Paradigm)
 
 ## Usage
 - Deep Learning Framework: PyTorch (version >=1.8)
